@@ -1,11 +1,16 @@
 # Azure DevOps CLI MCP Server
 
-This MCP server wraps Azure DevOps CLI commands and exposes them as MCP tools for AI agents. It supports both **Azure DevOps Services** (cloud) and **Azure DevOps Server** (on-premises) with Personal Access Token (PAT) authentication.
+This MCP server wraps Azure DevOps CLI commands and exposes them as MCP tools for AI agents. **This server is specifically designed for Azure DevOps Server (on-premises) deployments.**
+
+> **⚠️ Important Notice for Azure DevOps Services Users:**  
+> If you're using **Azure DevOps Services** (dev.azure.com), please use the official Microsoft Azure DevOps MCP Server instead:  
+> **https://github.com/microsoft/azure-devops-mcp**  
+> 
+> This server is optimized for on-premises Azure DevOps Server installations.
 
 ## Key Features
 
-- ✅ **Azure DevOps Services** (dev.azure.com) support
-- ✅ **Azure DevOps Server** (on-premises) support  
+- ✅ **Azure DevOps Server** (on-premises) support via Azure CLI
 - ✅ **Automatic CLI Configuration** - Sets organization and project defaults on startup
 - ✅ **Cross-platform** - Works on Windows, macOS, and Linux
 - ✅ **Secure Authentication** - Uses Azure CLI's standard PAT mechanism
@@ -62,16 +67,14 @@ The server requires these environment variables to be configured in your MCP cli
 
 ### Organization URL Examples
 
-**Azure DevOps Services (Cloud):**
-```
-https://dev.azure.com/yourorg
-```
-
 **Azure DevOps Server (On-premises):**
 ```
 https://devops.mycompany.com/DefaultCollection
 https://tfs.mycompany.com:8080/tfs/DefaultCollection
+https://ado-server.internal.company.com/DefaultCollection
 ```
+
+> **Note:** While this server can technically work with Azure DevOps Services URLs (e.g., `https://dev.azure.com/yourorg`), we recommend using the [official Microsoft Azure DevOps MCP Server](https://github.com/microsoft/azure-devops-mcp) for cloud-based Azure DevOps Services.
 
 ### MCP Client Configuration
 
@@ -86,7 +89,7 @@ Add this configuration to your MCP client (e.g., VS Code's `mcp.json`):
       "args": ["z:/repos/ado-server-mcp/build/index.js"],
       "env": {
         "AZURE_DEVOPS_PAT": "your_pat_token_here",
-        "AZURE_DEVOPS_ORG": "https://dev.azure.com/yourorg",
+        "AZURE_DEVOPS_ORG": "https://devops.mycompany.com/DefaultCollection",
         "AZURE_DEVOPS_PROJECT": "MyProject"
       }
     }
@@ -98,31 +101,52 @@ Add this configuration to your MCP client (e.g., VS Code's `mcp.json`):
 
 ## Available Tools
 
-### `list_projects`
-Lists all Azure DevOps projects in your organization.
+### Organization & Project Management
+- **`list_projects`** - List Azure DevOps projects using az cli (uses configured defaults)
+- **`project_show`** - Show details for a specific project
+- **`teams_list`** - List teams in the project
+- **`team_show`** - Show details for a specific team
+- **`team_members_list`** - List members of a team
 
-**Usage:** Simply call the tool - it uses your configured organization defaults.
+### Azure Boards (Work Items)
+- **`boards_query`** - Query Azure Boards work items using WIQL (Work Item Query Language) or existing query ID/path
+- **`boards_work_item_show`** - Show details for a specific work item by ID
+- **`boards_work_item_create`** - Create a new work item
+- **`boards_work_item_update`** - Update an existing work item
+- **`boards_work_item_delete`** - Delete a work item (moves to recycle bin)
+- **`boards_area_list`** - List area paths for the project
+- **`boards_iteration_list`** - List iteration paths for the project
+- **`boards_work_item_relation_types`** - List supported work item relation types in the organization
+- **`boards_work_item_relation_add`** - Add relation(s) to a work item
 
-**Returns:** JSON array of projects with details including:
-- Project name, ID, and description  
-- State (wellFormed, etc.)
-- Visibility (private/public)
-- Last update time
+### Azure Pipelines
+- **`pipelines_list`** - List pipelines in the project
+- **`pipeline_show`** - Show details for a specific pipeline
+- **`pipelines_create`** - Create a new pipeline
+- **`pipelines_run`** - Run a pipeline
+- **`pipelines_update`** - Update a pipeline
+- **`pipelines_delete`** - Delete a pipeline
+- **`pipelines_runs_list`** - List pipeline runs
+- **`pipelines_runs_show`** - Show pipeline run details
+- **`pipelines_runs_tag_add`** - Add tag to pipeline run
+- **`pipelines_runs_tag_delete`** - Delete tag from pipeline run
+- **`pipelines_runs_tag_list`** - List pipeline run tags
+- **`pipelines_variable_create`** - Create a pipeline variable
+- **`pipelines_variable_list`** - List variables for a pipeline
+- **`pipelines_variable_update`** - Update a pipeline variable
 
-**Example Response:**
-```json
-{
-  "value": [
-    {
-      "id": "47dbf6d4-c346-44b9-a338-b335b317018f",
-      "name": "MyProject", 
-      "description": "My awesome project",
-      "state": "wellFormed",
-      "visibility": "private"
-    }
-  ]
-}
-```
+### Azure Repos
+- **`repos_list`** - List repositories in the project
+- **`repo_show`** - Show details for a specific repository
+- **`repos_create`** - Create a new repository
+
+### Azure DevOps Wiki
+- **`wiki_list`** - List wikis in the project
+- **`wiki_show`** - View wiki details
+- **`wiki_page_show`** - View a wiki page
+- **`wiki_page_create`** - Add a wiki page
+
+> **Note:** Additional tools for artifacts, security, service endpoints, and banners are available in the codebase but currently disabled. These can be enabled by uncommenting the relevant lines in `src/tools/index.ts`.
 
 ## Development
 
@@ -190,6 +214,7 @@ Your Personal Access Token needs these scopes:
 - Authentication is handled through Azure CLI's standard mechanisms
 
 ## References
+- [Official Microsoft Azure DevOps MCP Server](https://github.com/microsoft/azure-devops-mcp) - **Recommended for Azure DevOps Services users**
 - [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
 - [MCP Server Concepts](https://modelcontextprotocol.io/quickstart/server)
 - [Azure DevOps CLI Docs](https://learn.microsoft.com/en-us/cli/azure/devops)
