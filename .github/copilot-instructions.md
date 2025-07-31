@@ -6,7 +6,8 @@ This is a Node.js/TypeScript MCP server that wraps Azure DevOps CLI commands and
 
 - **MCP Server Pattern**: Uses `@modelcontextprotocol/sdk` with stdio transport for AI integration
 - **CLI Wrapper**: Spawns Azure CLI (`az devops`) processes with PAT authentication
-- **Environment-Based Config**: Authentication via `AZURE_DEVOPS_PAT` and `AZURE_DEVOPS_ORG` env vars
+- **Environment-Based Config**: Authentication via `AZURE_DEVOPS_PAT`, organization via `AZURE_DEVOPS_ORG`, and optional project via `AZURE_DEVOPS_PROJECT`
+- **Startup Configuration**: Runs `az devops configure` to set defaults when server starts
 
 ## Key Files
 
@@ -28,10 +29,9 @@ Tools follow this structure in `src/index.ts`:
 server.tool("tool_name", "Description", {}, async (args, extra): Promise<MCPToolResponse> => {
   // Validate environment variables
   const pat = process.env.AZURE_DEVOPS_PAT;
-  const org = process.env.AZURE_DEVOPS_ORG;
   
-  // Call Azure CLI via runAzCli helper
-  return await runAzCli(["devops", "command", "--organization", org], pat);
+  // Use az devops defaults (no need to specify --organization if configured)
+  return await runAzCli(["devops", "command", "--output", "json"], pat);
 });
 ```
 
@@ -54,7 +54,8 @@ Environment variables are passed through MCP client config (e.g., VSCode's `mcp.
       "args": ["build/index.js"],
       "env": {
         "AZURE_DEVOPS_PAT": "your_pat_here",
-        "AZURE_DEVOPS_ORG": "https://dev.azure.com/yourorg"
+        "AZURE_DEVOPS_ORG": "https://devops.mycompany.com/DefaultCollection",
+        "AZURE_DEVOPS_PROJECT": "MyProject"
       }
     }
   }

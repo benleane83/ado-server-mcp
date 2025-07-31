@@ -6,6 +6,48 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+// Configure Azure DevOps defaults on server startup
+async function configureAzureDevOps(): Promise<void> {
+  const organization = process.env.AZURE_DEVOPS_ORG;
+  const project = process.env.AZURE_DEVOPS_PROJECT;
+  
+  if (!organization) {
+    console.error("AZURE_DEVOPS_ORG not set - skipping az devops configure");
+    return;
+  }
+  
+  const configArgs = ["devops", "configure", "--defaults", `organization=${organization}`];
+  if (project) {
+    configArgs.push(`project=${project}`);
+  }
+  
+  return new Promise((resolve, reject) => {
+    let azPath = "az";
+    if (process.platform === "win32") {
+      azPath = "az.cmd";
+    }
+    
+    const az = spawn(azPath, configArgs, { shell: true });
+    let error = "";
+    
+    az.stderr.on("data", (data) => { error += data.toString(); });
+    az.on("close", (code) => {
+      if (code === 0) {
+        console.error(`Azure DevOps defaults configured: org=${organization}${project ? `, project=${project}` : ''}`);
+        resolve();
+      } else {
+        console.error(`Failed to configure Azure DevOps defaults: ${error}`);
+        reject(new Error(`az devops configure failed with code ${code}`));
+      }
+    });
+    
+    az.on("error", (err) => {
+      console.error(`Error configuring Azure DevOps: ${err.message}`);
+      reject(err);
+    });
+  });
+}
+
 const server = new McpServer({
   name: "ado-cli-server",
   version: "1.0.0",
@@ -18,11 +60,10 @@ const server = new McpServer({
 // Tool: List Azure DevOps projects
 server.tool(
   "list_projects",
-  "List Azure DevOps projects using az cli",
+  "List Azure DevOps projects using az cli (uses configured defaults)",
   {},
     async (args, extra): Promise<MCPToolResponse> => {
       const pat = process.env.AZURE_DEVOPS_PAT;
-      const org = process.env.AZURE_DEVOPS_ORG;
       
       if (!pat) {
         return {
@@ -31,14 +72,8 @@ server.tool(
         };
       }
       
-      if (!org) {
-        return {
-          content: [{ type: "text", text: "AZURE_DEVOPS_ORG not set in environment" }],
-          isError: true
-        };
-      }
-      
-      return await runAzCli(["devops", "project", "list", "--organization", org, "--output", "json"], pat);
+      // Use az devops defaults (configured at startup) - no need to specify --organization
+      return await runAzCli(["devops", "project", "list", "--output", "json"], pat);
     }
 );
 
@@ -80,6 +115,14 @@ async function runAzCli(args: string[], pat: string): Promise<MCPToolResponse> {
 
 // Main function to start the server
 async function main() {
+  try {
+    // Configure Azure DevOps defaults before starting the server
+    await configureAzureDevOps();
+  } catch (error) {
+    console.error("Warning: Failed to configure Azure DevOps defaults:", error);
+    // Continue starting the server even if configuration fails
+  }
+  
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
