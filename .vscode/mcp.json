@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "ado-cli-server": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["build/index.js"]
+    }
+  }
+}
